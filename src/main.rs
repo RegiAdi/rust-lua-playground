@@ -1,8 +1,29 @@
 use mlua::prelude::*;
+use std::fs;
+use std::path::Path;
 
 fn jump(_lua: &Lua, name: String) -> LuaResult<()> {
     println!("Jump, {}!", name);
     Ok(())
+}
+
+fn change_weapon(_lua: &Lua, name: String) -> LuaResult<()> {
+    println!("Weapon Changed, {}!", name);
+    Ok(())
+}
+
+fn run_lua_file(lua: &Lua, file_path: &Path) -> LuaResult<()> {
+    match fs::read_to_string(file_path) {
+        Ok(lua_code) => {
+            println!("Executing Lua file: {}", file_path.display());
+            lua.load(&lua_code).exec()?;
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Error reading Lua file '{}': {}", file_path.display(), e);
+            Err(LuaError::RuntimeError(format!("Failed to read Lua file: {}", e)))
+        }
+    }
 }
 
 fn main() -> LuaResult<()> {
@@ -28,6 +49,14 @@ fn main() -> LuaResult<()> {
     let jump_fn = lua.create_function(jump)?;
     lua.globals().set("jump", jump_fn)?;
     lua.load("jump('Lua')").exec()?;
+
+    let change_weapon_fn = lua.create_function(change_weapon)?;
+    lua.globals().set("change_weapon", change_weapon_fn)?;
+
+    // run lua file, path relative to project root
+    let lua_file_path = Path::new("src/event.lua");
+    
+    run_lua_file(&lua, lua_file_path)?;
 
     Ok(())
 }
